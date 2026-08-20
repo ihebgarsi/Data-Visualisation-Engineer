@@ -34,6 +34,16 @@ export type SpotFilters = {
   search: string;
 };
 
+export const WEEKDAYS: Weekday[] = [
+  "lundi",
+  "mardi",
+  "mercredi",
+  "jeudi",
+  "vendredi",
+  "samedi",
+  "dimanche",
+];
+
 export const KIND_LABELS: Record<SpotKind, string> = {
   park: "Espace vert",
   facility: "Équipement",
