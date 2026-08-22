@@ -116,8 +116,73 @@ a {
   margin-bottom: 1rem;
 }
 
+.banner-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.spinner {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.load-progress {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.88rem;
+}
+
+.load-progress li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.loading-line {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.skeleton-row {
+  pointer-events: none;
+}
+
+.skeleton {
+  display: block;
+  height: 0.75rem;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #ece8e1 25%, #f7f5f1 50%, #ece8e1 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
 .banner-info {
   background: var(--info-bg);
+  align-items: flex-start;
 }
 
 .banner-error {

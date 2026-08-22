@@ -53,8 +53,37 @@ export function ResultsTable({
 }: ResultsTableProps) {
   if (isLoading) {
     return (
-      <div className="empty" role="status">
-        Les résultats apparaîtront ici une fois les données chargées.
+      <div className="table-wrap" aria-busy="true" aria-live="polite">
+        <div className="table-meta">
+          <p className="loading-line">
+            <span className="spinner" aria-hidden="true" />
+            Chargement des lieux…
+          </p>
+        </div>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                {COLUMNS.map((column) => (
+                  <th key={column.key} scope="col">
+                    {column.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 8 }, (_, index) => (
+                <tr key={index} className="skeleton-row">
+                  {COLUMNS.map((column) => (
+                    <td key={column.key}>
+                      <span className="skeleton" />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     );
   }

@@ -13,10 +13,16 @@ type RecordsResponse<T> = {
   results: T[];
 };
 
+export type FetchProgress = {
+  loaded: number;
+  total: number;
+};
+
 export async function fetchAllRecords<T>(
   datasetId: string,
   select: string,
   signal?: AbortSignal,
+  onProgress?: (progress: FetchProgress) => void,
 ): Promise<T[]> {
   const all: T[] = [];
   let offset = 0;
@@ -38,6 +44,7 @@ export async function fetchAllRecords<T>(
     const data = (await response.json()) as RecordsResponse<T>;
     total = data.total_count;
     all.push(...data.results);
+    onProgress?.({ loaded: all.length, total });
 
     if (data.results.length === 0) {
       break;

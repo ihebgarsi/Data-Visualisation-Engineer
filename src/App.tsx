@@ -35,7 +35,7 @@ const STRIPES = [
 ];
 
 export default function App() {
-  const { spots, status, error, retry } = useCoolSpots();
+  const { spots, status, error, progress, retry } = useCoolSpots();
   const [filters, setFilters] = useState<SpotFilters>(DEFAULT_FILTERS);
   const [sort, setSort] = useState<SortState>({
     key: "name",
@@ -85,7 +85,12 @@ export default function App() {
         </p>
       </header>
 
-      <StatusBanner status={status} error={error} onRetry={retry} />
+      <StatusBanner
+        status={status}
+        error={error}
+        progress={progress}
+        onRetry={retry}
+      />
 
       <FilterBar
         filters={filters}
