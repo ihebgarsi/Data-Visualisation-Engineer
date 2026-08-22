@@ -50,4 +50,4 @@ Pas de carte : un tableau triable, des filtres, et un panneau de détail (lien G
 
 ## Stack
 
-React + Vite + TypeScript. `fetch` natif, CSS sans kit UI.
+Vite + TypeScript (React 18). `fetch` natif, CSS sans kit UI.
