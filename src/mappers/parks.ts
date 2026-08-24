@@ -1,15 +1,14 @@
 import type { CoolSpot, Weekday } from "../models/coolSpot";
 import {
-  displayOrDash,
-  hoursFromRecord,
-  hoursTodayFrom,
-  mapsUrlFrom,
-  mapOpenStatus,
-  text,
+  clean,
+  hoursToday,
+  mapsLink,
+  parseOuvert,
+  pickHours,
   type GeoPoint,
 } from "./shared";
 
-export const PARK_SELECT = [
+export const PARK_FIELDS = [
   "identifiant",
   "nom",
   "type",
@@ -32,7 +31,7 @@ export const PARK_SELECT = [
   "geo_point_2d",
 ].join(",");
 
-export type ParkRecord = {
+export type ParkRow = {
   identifiant?: string | null;
   nom?: string | null;
   type?: string | null;
@@ -55,44 +54,39 @@ export type ParkRecord = {
   geo_point_2d?: GeoPoint;
 };
 
-export function mapPark(record: ParkRecord, index: number): CoolSpot {
-  const hoursByDay = hoursFromRecord(
-    record as Partial<Record<`horaires_${Weekday}`, string | null>>,
-  );
+export function mapPark(row: ParkRow, i: number): CoolSpot {
+  const hours = pickHours(row as Partial<Record<`horaires_${Weekday}`, string | null>>);
   const shade =
-    typeof record.proportion_vegetation_haute === "number"
-      ? record.proportion_vegetation_haute
+    typeof row.proportion_vegetation_haute === "number"
+      ? row.proportion_vegetation_haute
       : null;
 
   return {
-    id: `park:${record.identifiant ?? index}`,
+    id: `park:${row.identifiant ?? i}`,
     kind: "park",
-    name: text(record.nom) || "Espace vert",
-    type: text(record.type) || text(record.categorie) || "Espace vert",
-    address: text(record.adresse),
-    arrondissement: text(record.arrondissement),
-    isOpen: mapOpenStatus(record.statut_ouverture),
-    isPaid: false,
+    name: clean(row.nom) || "Espace vert",
+    type: clean(row.type) || clean(row.categorie) || "Espace vert",
+    address: clean(row.adresse),
+    arrondissement: clean(row.arrondissement),
+    isOpen: parseOuvert(row.statut_ouverture),
+    isPaid: false, // les parcs sont gratuits
     shadePercent: shade,
-    hoursToday: hoursTodayFrom(hoursByDay),
-    hoursByDay,
-    hoursPeriod: record.horaires_periode ?? null,
+    hoursToday: hoursToday(hours),
+    hoursByDay: hours,
+    hoursPeriod: row.horaires_periode ?? null,
     extras: [
-      { label: "Catégorie", value: displayOrDash(record.categorie) },
+      { label: "Catégorie", value: row.categorie?.trim() || "-" },
       {
         label: "Végétation haute",
-        value: shade === null ? "—" : `${Math.round(shade)} %`,
+        value: shade == null ? "-" : `${Math.round(shade)} %`,
       },
-      { label: "Ouvert 24h/24", value: displayOrDash(record.ouvert_24h) },
-      {
-        label: "Ouverture canicule",
-        value: displayOrDash(record.canicule_ouverture),
-      },
+      { label: "Ouvert 24h/24", value: row.ouvert_24h || "-" },
+      { label: "Ouverture canicule", value: row.canicule_ouverture || "-" },
       {
         label: "Ouverture estivale nocturne",
-        value: displayOrDash(record.ouverture_estivale_nocturne),
+        value: row.ouverture_estivale_nocturne || "-",
       },
     ],
-    mapsUrl: mapsUrlFrom(record.geo_point_2d),
+    mapsUrl: mapsLink(row.geo_point_2d),
   };
 }

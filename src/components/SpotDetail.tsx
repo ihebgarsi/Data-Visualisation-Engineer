@@ -1,106 +1,115 @@
 import type { CoolSpot } from "../models/coolSpot";
 import { KIND_LABELS, WEEKDAYS } from "../models/coolSpot";
 
-type SpotDetailProps = {
+type Props = {
   spot: CoolSpot | null;
   onClose: () => void;
 };
 
-function openLabel(value: boolean | null): string {
-  if (value === true) return "Oui";
-  if (value === false) return "Non";
-  return "Non renseigné";
-}
-
-function priceLabel(value: boolean | null): string {
-  if (value === true) return "Payant";
-  if (value === false) return "Gratuit";
-  return "Non renseigné";
-}
-
-export function SpotDetail({ spot, onClose }: SpotDetailProps) {
+export function SpotDetail({ spot, onClose }: Props) {
   if (!spot) {
     return (
-      <aside className="detail" aria-label="Détail du lieu">
-        <p className="muted">Sélectionnez une ligne pour voir le détail.</p>
+      <aside className="rounded-xl border border-line bg-white px-4 py-3.5 lg:sticky lg:top-3">
+        <p className="text-muted">Cliquez une ligne pour voir le détail.</p>
       </aside>
     );
   }
 
   return (
-    <aside className="detail" aria-label={`Détail de ${spot.name}`}>
-      <div className="detail-head">
+    <aside className="rounded-xl border border-line bg-white px-4 py-3.5 lg:sticky lg:top-3">
+      <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <p className="eyebrow">{KIND_LABELS[spot.kind]}</p>
-          <h2>{spot.name}</h2>
+          <p className="mb-1 text-xs font-bold uppercase tracking-widest text-accent">
+            {KIND_LABELS[spot.kind]}
+          </p>
+          <h2 className="text-xl">{spot.name}</h2>
         </div>
-        <button type="button" className="button button-ghost" onClick={onClose}>
+        <button
+          type="button"
+          className="rounded-full border border-line bg-transparent px-3 py-1.5 text-sm hover:bg-paper"
+          onClick={onClose}
+        >
           Fermer
         </button>
       </div>
 
-      <dl className="facts">
-        <div>
-          <dt>Type</dt>
-          <dd>{spot.type}</dd>
+      <dl className="m-0 grid gap-2.5">
+        <div className="grid gap-0.5">
+          <dt className="text-xs text-muted">Type</dt>
+          <dd className="m-0">{spot.type}</dd>
         </div>
-        <div>
-          <dt>Adresse</dt>
-          <dd>{spot.address || "—"}</dd>
+        <div className="grid gap-0.5">
+          <dt className="text-xs text-muted">Adresse</dt>
+          <dd className="m-0">{spot.address || "-"}</dd>
         </div>
-        <div>
-          <dt>Arrondissement</dt>
-          <dd>{spot.arrondissement || "—"}</dd>
+        <div className="grid gap-0.5">
+          <dt className="text-xs text-muted">Arrondissement</dt>
+          <dd className="m-0">{spot.arrondissement || "-"}</dd>
         </div>
-        <div>
-          <dt>Ouvert / disponible</dt>
-          <dd>{openLabel(spot.isOpen)}</dd>
+        <div className="grid gap-0.5">
+          <dt className="text-xs text-muted">Ouvert / disponible</dt>
+          <dd className="m-0">
+            {spot.isOpen === true
+              ? "Oui"
+              : spot.isOpen === false
+                ? "Non"
+                : "Non renseigné"}
+          </dd>
         </div>
-        <div>
-          <dt>Prix</dt>
-          <dd>{priceLabel(spot.isPaid)}</dd>
+        <div className="grid gap-0.5">
+          <dt className="text-xs text-muted">Prix</dt>
+          <dd className="m-0">
+            {spot.isPaid === true
+              ? "Payant"
+              : spot.isPaid === false
+                ? "Gratuit"
+                : "Non renseigné"}
+          </dd>
         </div>
-        {spot.hoursToday ? (
-          <div>
-            <dt>Horaires aujourd'hui</dt>
-            <dd>{spot.hoursToday}</dd>
+        {spot.hoursToday && (
+          <div className="grid gap-0.5">
+            <dt className="text-xs text-muted">Aujourd'hui</dt>
+            <dd className="m-0">{spot.hoursToday}</dd>
           </div>
-        ) : null}
-        {spot.hoursPeriod ? (
-          <div>
-            <dt>Période des horaires</dt>
-            <dd>{spot.hoursPeriod}</dd>
+        )}
+        {spot.hoursPeriod && (
+          <div className="grid gap-0.5">
+            <dt className="text-xs text-muted">Période des horaires</dt>
+            <dd className="m-0">{spot.hoursPeriod}</dd>
           </div>
-        ) : null}
-        {spot.extras.map((extra) => (
-          <div key={extra.label}>
-            <dt>{extra.label}</dt>
-            <dd>{extra.value}</dd>
+        )}
+        {spot.extras.map((x) => (
+          <div key={x.label} className="grid gap-0.5">
+            <dt className="text-xs text-muted">{x.label}</dt>
+            <dd className="m-0">{x.value}</dd>
           </div>
         ))}
       </dl>
 
-      {spot.hoursByDay ? (
+      {spot.hoursByDay && (
         <section>
-          <h3>Horaires de la semaine</h3>
-          <ul className="hours">
+          <h3 className="mb-1 mt-4 text-sm">Semaine</h3>
+          <ul className="m-0 grid list-none gap-1 p-0">
             {WEEKDAYS.map((day) => (
-              <li key={day}>
+              <li
+                key={day}
+                className="flex justify-between gap-3 border-b border-line py-1 capitalize"
+              >
                 <span>{day}</span>
-                <span>{spot.hoursByDay?.[day] || "—"}</span>
+                <span>{spot.hoursByDay?.[day] || "-"}</span>
               </li>
             ))}
           </ul>
         </section>
-      ) : null}
+      )}
 
-      {spot.mapsUrl ? (
-        <p>
+      {spot.mapsUrl && (
+        <p className="mt-3">
           <a href={spot.mapsUrl} target="_blank" rel="noreferrer">
-            Ouvrir dans Google Maps
+            Voir sur Google Maps
           </a>
         </p>
-      ) : null}
+      )}
     </aside>
   );
 }

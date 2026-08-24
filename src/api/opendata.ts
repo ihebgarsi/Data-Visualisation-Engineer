@@ -1,56 +1,52 @@
-const BASE_URL =
-  "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets";
-const PAGE_SIZE = 100;
+// OpenDataSoft v2.1 — limit max = 100, donc on pagine avec offset
+const BASE = "https://opendata.paris.fr/api/explore/v2.1/catalog/datasets";
+const PAGE = 100;
 
-export const DATASET_IDS = {
+export const DATASETS = {
   parks: "ilots-de-fraicheur-espaces-verts-frais",
   facilities: "ilots-de-fraicheur-equipements-activites",
   fountains: "fontaines-a-boire",
 } as const;
 
-type RecordsResponse<T> = {
+type ApiPage<T> = {
   total_count: number;
   results: T[];
 };
 
-export type FetchProgress = {
+export type Progress = {
   loaded: number;
   total: number;
 };
 
-export async function fetchAllRecords<T>(
+export async function fetchDataset<T>(
   datasetId: string,
   select: string,
   signal?: AbortSignal,
-  onProgress?: (progress: FetchProgress) => void,
+  onProgress?: (p: Progress) => void,
 ): Promise<T[]> {
-  const all: T[] = [];
+  const rows: T[] = [];
   let offset = 0;
-  let total = Number.POSITIVE_INFINITY;
+  let total = Infinity;
 
   while (offset < total) {
-    const url = new URL(`${BASE_URL}/${datasetId}/records`);
-    url.searchParams.set("limit", String(PAGE_SIZE));
+    const url = new URL(`${BASE}/${datasetId}/records`);
+    url.searchParams.set("limit", String(PAGE));
     url.searchParams.set("offset", String(offset));
     url.searchParams.set("select", select);
 
-    const response = await fetch(url, { signal });
-    if (!response.ok) {
-      throw new Error(
-        `Impossible de charger ${datasetId} (${response.status})`,
-      );
+    const res = await fetch(url, { signal });
+    if (!res.ok) {
+      throw new Error(`Erreur API ${datasetId} (${res.status})`);
     }
 
-    const data = (await response.json()) as RecordsResponse<T>;
-    total = data.total_count;
-    all.push(...data.results);
-    onProgress?.({ loaded: all.length, total });
+    const json = (await res.json()) as ApiPage<T>;
+    total = json.total_count;
+    rows.push(...json.results);
+    onProgress?.({ loaded: rows.length, total });
 
-    if (data.results.length === 0) {
-      break;
-    }
-    offset += PAGE_SIZE;
+    if (json.results.length === 0) break;
+    offset += PAGE;
   }
 
-  return all;
+  return rows;
 }

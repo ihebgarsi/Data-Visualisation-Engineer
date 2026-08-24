@@ -1,11 +1,13 @@
-import "./env";
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./styles.css";
 
-const mount = document.getElementById("app");
-if (!mount) {
-  throw new Error("Impossible de monter l'application.");
-}
+const root = document.getElementById("root");
+if (!root) throw new Error("root introuvable");
 
-createRoot(mount).render(<App />);
+createRoot(root).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+);

@@ -1,17 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { DATASET_IDS, fetchAllRecords, type FetchProgress } from "../api/opendata";
-import { mapFacility, FACILITY_SELECT, type FacilityRecord } from "../mappers/facilities";
-import { mapFountain, FOUNTAIN_SELECT, type FountainRecord } from "../mappers/fountains";
-import { mapPark, PARK_SELECT, type ParkRecord } from "../mappers/parks";
+import { DATASETS, fetchDataset, type Progress } from "../api/opendata";
+import { FACILITY_FIELDS, mapFacility, type FacilityRow } from "../mappers/facilities";
+import { FOUNTAIN_FIELDS, mapFountain, type FountainRow } from "../mappers/fountains";
+import { PARK_FIELDS, mapPark, type ParkRow } from "../mappers/parks";
 import type { CoolSpot } from "../models/coolSpot";
 
 export type LoadStatus = "loading" | "ready" | "error";
-
 export type DatasetKey = "parks" | "facilities" | "fountains";
+export type LoadProgress = Record<DatasetKey, Progress>;
 
-export type LoadProgress = Record<DatasetKey, FetchProgress>;
-
-const EMPTY_PROGRESS: LoadProgress = {
+const emptyProgress: LoadProgress = {
   parks: { loaded: 0, total: 0 },
   facilities: { loaded: 0, total: 0 },
   fountains: { loaded: 0, total: 0 },
@@ -21,66 +19,60 @@ export function useCoolSpots() {
   const [spots, setSpots] = useState<CoolSpot[]>([]);
   const [status, setStatus] = useState<LoadStatus>("loading");
   const [error, setError] = useState<string | null>(null);
-  const [progress, setProgress] = useState<LoadProgress>(EMPTY_PROGRESS);
-  const [reloadKey, setReloadKey] = useState(0);
+  const [progress, setProgress] = useState<LoadProgress>(emptyProgress);
+  const [tick, setTick] = useState(0);
 
   const retry = useCallback(() => {
     setStatus("loading");
     setError(null);
-    setProgress(EMPTY_PROGRESS);
-    setReloadKey((key) => key + 1);
+    setProgress(emptyProgress);
+    setTick((n) => n + 1);
   }, []);
 
   useEffect(() => {
-    const controller = new AbortController();
+    const ac = new AbortController();
 
     function track(key: DatasetKey) {
-      return (next: FetchProgress) => {
-        setProgress((current) => ({ ...current, [key]: next }));
+      return (p: Progress) => {
+        setProgress((prev) => ({ ...prev, [key]: p }));
       };
     }
 
     async function load() {
       try {
+        // 3 appels en parallèle, chacun pagine jusqu'au bout
         const [parks, facilities, fountains] = await Promise.all([
-          fetchAllRecords<ParkRecord>(
-            DATASET_IDS.parks,
-            PARK_SELECT,
-            controller.signal,
-            track("parks"),
-          ).then((rows) => rows.map(mapPark)),
-          fetchAllRecords<FacilityRecord>(
-            DATASET_IDS.facilities,
-            FACILITY_SELECT,
-            controller.signal,
+          fetchDataset<ParkRow>(DATASETS.parks, PARK_FIELDS, ac.signal, track("parks")).then(
+            (rows) => rows.map(mapPark),
+          ),
+          fetchDataset<FacilityRow>(
+            DATASETS.facilities,
+            FACILITY_FIELDS,
+            ac.signal,
             track("facilities"),
           ).then((rows) => rows.map(mapFacility)),
-          fetchAllRecords<FountainRecord>(
-            DATASET_IDS.fountains,
-            FOUNTAIN_SELECT,
-            controller.signal,
+          fetchDataset<FountainRow>(
+            DATASETS.fountains,
+            FOUNTAIN_FIELDS,
+            ac.signal,
             track("fountains"),
           ).then((rows) => rows.map(mapFountain)),
         ]);
 
-        if (controller.signal.aborted) return;
+        if (ac.signal.aborted) return;
         setSpots([...parks, ...facilities, ...fountains]);
         setStatus("ready");
-      } catch (cause) {
-        if (controller.signal.aborted) return;
-        if (cause instanceof Error && cause.name === "AbortError") return;
-        const message =
-          cause instanceof Error
-            ? cause.message
-            : "Le chargement des données a échoué.";
-        setError(message);
+      } catch (err) {
+        if (ac.signal.aborted) return;
+        if (err instanceof Error && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : "Chargement impossible");
         setStatus("error");
       }
     }
 
-    void load();
-    return () => controller.abort();
-  }, [reloadKey]);
+    load();
+    return () => ac.abort();
+  }, [tick]);
 
   return { spots, status, error, progress, retry };
 }

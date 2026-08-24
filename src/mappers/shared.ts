@@ -3,68 +3,59 @@ import { WEEKDAYS } from "../models/coolSpot";
 
 export type GeoPoint = { lat: number; lon: number } | null | undefined;
 
-export function text(value: string | null | undefined): string {
+export function clean(value: string | null | undefined) {
   return value?.trim() ?? "";
 }
 
-export function mapYesNo(value: string | null | undefined): boolean | null {
+export function ouiNon(value: string | null | undefined): boolean | null {
   if (!value) return null;
-  const normalized = value.trim().toLowerCase();
-  if (["oui", "o", "yes"].includes(normalized)) return true;
-  if (["non", "n", "no"].includes(normalized)) return false;
+  const v = value.trim().toLowerCase();
+  if (v === "oui" || v === "o") return true;
+  if (v === "non" || v === "n") return false;
   return null;
 }
 
-export function mapOpenStatus(value: string | null | undefined): boolean | null {
+export function parseOuvert(value: string | null | undefined): boolean | null {
   if (!value) return null;
-  const normalized = value.trim().toLowerCase();
-  if (["ouvert", "ouverte", "oui", "o", "disponible"].includes(normalized)) {
-    return true;
-  }
-  if (["fermé", "ferme", "fermée", "non", "n", "indisponible"].includes(normalized)) {
-    return false;
-  }
+  const v = value.trim().toLowerCase();
+  if (v === "ouvert" || v === "ouverte" || v === "oui") return true;
+  if (v.startsWith("ferm") || v === "non") return false;
   return null;
 }
 
-export function weekdayInParis(): Weekday {
-  const day = new Intl.DateTimeFormat("fr-FR", {
+export function todayInParis(): Weekday {
+  const label = new Intl.DateTimeFormat("fr-FR", {
     weekday: "long",
     timeZone: "Europe/Paris",
   })
     .format(new Date())
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+    .toLowerCase();
 
-  return WEEKDAYS.includes(day as Weekday) ? (day as Weekday) : "lundi";
+  // au cas où l'accent pose problème (dimanche n'en a pas, mais on reste prudent)
+  const normalized = label.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return WEEKDAYS.includes(normalized as Weekday) ? (normalized as Weekday) : "lundi";
 }
 
-export function hoursFromRecord(
-  record: Partial<Record<`horaires_${Weekday}`, string | null>>,
-): Partial<Record<Weekday, string | null>> {
+export function pickHours(
+  row: Partial<Record<`horaires_${Weekday}`, string | null>>,
+) {
   const hours: Partial<Record<Weekday, string | null>> = {};
   for (const day of WEEKDAYS) {
-    hours[day] = record[`horaires_${day}`] ?? null;
+    hours[day] = row[`horaires_${day}`] ?? null;
   }
   return hours;
 }
 
-export function hoursTodayFrom(
+export function hoursToday(
   hours: Partial<Record<Weekday, string | null>> | null,
-): string | null {
+) {
   if (!hours) return null;
-  return hours[weekdayInParis()] ?? null;
+  return hours[todayInParis()] ?? null;
 }
 
-export function mapsUrlFrom(point: GeoPoint): string | null {
+export function mapsLink(point: GeoPoint) {
   if (!point || typeof point.lat !== "number" || typeof point.lon !== "number") {
     return null;
   }
   return `https://www.google.com/maps?q=${point.lat},${point.lon}`;
-}
-
-export function displayOrDash(value: string | number | null | undefined): string {
-  if (value === null || value === undefined || value === "") return "—";
-  return String(value);
 }

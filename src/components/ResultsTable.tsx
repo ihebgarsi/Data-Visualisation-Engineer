@@ -1,8 +1,9 @@
+import type { ReactNode } from "react";
 import type { CoolSpot } from "../models/coolSpot";
 import { KIND_LABELS } from "../models/coolSpot";
 import { PAGE_SIZE, type SortKey, type SortState } from "../lib/filters";
 
-type ResultsTableProps = {
+type Props = {
   isLoading: boolean;
   isError: boolean;
   spots: CoolSpot[];
@@ -26,16 +27,27 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: "shadePercent", label: "Ombre" },
 ];
 
-function openLabel(value: boolean | null): string {
-  if (value === true) return "Oui";
-  if (value === false) return "Non";
-  return "—";
+const ghostBtn =
+  "rounded-full border border-line bg-transparent px-3 py-1.5 text-sm hover:bg-paper disabled:cursor-not-allowed disabled:opacity-50";
+
+function yesNo(v: boolean | null) {
+  if (v === true) return "Oui";
+  if (v === false) return "Non";
+  return "-";
 }
 
-function priceLabel(value: boolean | null): string {
-  if (value === true) return "Payant";
-  if (value === false) return "Gratuit";
-  return "—";
+function price(v: boolean | null) {
+  if (v === true) return "Payant";
+  if (v === false) return "Gratuit";
+  return "-";
+}
+
+function Empty({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 rounded-xl border border-line bg-white px-4 py-3.5">
+      {children}
+    </div>
+  );
 }
 
 export function ResultsTable({
@@ -50,74 +62,42 @@ export function ResultsTable({
   onSort,
   onSelect,
   onPage,
-}: ResultsTableProps) {
+}: Props) {
   if (isLoading) {
     return (
-      <div className="table-wrap" aria-busy="true" aria-live="polite">
-        <div className="table-meta">
-          <p className="loading-line">
-            <span className="spinner" aria-hidden="true" />
-            Chargement des lieux…
-          </p>
-        </div>
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                {COLUMNS.map((column) => (
-                  <th key={column.key} scope="col">
-                    {column.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {Array.from({ length: 8 }, (_, index) => (
-                <tr key={index} className="skeleton-row">
-                  {COLUMNS.map((column) => (
-                    <td key={column.key}>
-                      <span className="skeleton" />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <Empty>
+        <span
+          className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-line border-t-accent"
+          aria-hidden="true"
+        />
+        <span role="status">Chargement des lieux…</span>
+      </Empty>
     );
   }
 
   if (isError) {
     return (
-      <div className="empty" role="status">
-        Les résultats ne peuvent pas être affichés tant que le chargement échoue.
-      </div>
+      <Empty>Impossible d'afficher le tableau tant que le chargement échoue.</Empty>
     );
   }
 
   if (total === 0) {
-    return (
-      <div className="empty" role="status">
-        Aucun lieu ne correspond à ces filtres.
-      </div>
-    );
+    return <Empty>Aucun lieu ne correspond aux filtres.</Empty>;
   }
 
   const from = (page - 1) * PAGE_SIZE + 1;
   const to = Math.min(page * PAGE_SIZE, total);
 
   return (
-    <div className="table-wrap">
-      <div className="table-meta">
+    <div className="overflow-hidden rounded-xl border border-line bg-white">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5">
         <p>
-          <strong>{total}</strong> lieu{total > 1 ? "x" : ""} — affichage {from}–
-          {to}
+          <strong>{total}</strong> lieu{total > 1 ? "x" : ""} — {from} à {to}
         </p>
-        <div className="pager">
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            className="button button-ghost"
+            className={ghostBtn}
             disabled={page <= 1}
             onClick={() => onPage(page - 1)}
           >
@@ -128,7 +108,7 @@ export function ResultsTable({
           </span>
           <button
             type="button"
-            className="button button-ghost"
+            className={ghostBtn}
             disabled={page >= pageCount}
             onClick={() => onPage(page + 1)}
           >
@@ -137,26 +117,27 @@ export function ResultsTable({
         </div>
       </div>
 
-      <div className="table-scroll">
-        <table>
+      <div className="overflow-auto">
+        <table className="w-full border-collapse text-sm">
           <thead>
             <tr>
-              {COLUMNS.map((column) => {
-                const active = sort.key === column.key;
-                const suffix = active
-                  ? sort.direction === "asc"
-                    ? " ↑"
-                    : " ↓"
-                  : "";
+              {COLUMNS.map((col) => {
+                const active = sort.key === col.key;
+                let arrow = "";
+                if (active) arrow = sort.direction === "asc" ? " ↑" : " ↓";
                 return (
-                  <th key={column.key} scope="col">
+                  <th
+                    key={col.key}
+                    scope="col"
+                    className="whitespace-nowrap border-t border-line px-3 py-2.5 text-left"
+                  >
                     <button
                       type="button"
-                      className="th-button"
-                      onClick={() => onSort(column.key)}
+                      className="cursor-pointer border-0 bg-transparent p-0 font-bold text-heading"
+                      onClick={() => onSort(col.key)}
                     >
-                      {column.label}
-                      {suffix}
+                      {col.label}
+                      {arrow}
                     </button>
                   </th>
                 );
@@ -167,25 +148,24 @@ export function ResultsTable({
             {spots.map((spot) => (
               <tr
                 key={spot.id}
-                className={spot.id === selectedId ? "row-selected" : undefined}
+                className={`cursor-pointer border-t border-line hover:bg-row ${
+                  spot.id === selectedId ? "bg-row-on" : ""
+                }`}
                 onClick={() => onSelect(spot.id)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    onSelect(spot.id);
-                  }
-                }}
-                tabIndex={0}
               >
-                <td>{spot.name}</td>
-                <td>{KIND_LABELS[spot.kind]}</td>
-                <td>{spot.type}</td>
-                <td>{spot.arrondissement || "—"}</td>
-                <td>{openLabel(spot.isOpen)}</td>
-                <td>{priceLabel(spot.isPaid)}</td>
-                <td>
-                  {spot.shadePercent === null
-                    ? "—"
+                <td className="min-w-40 whitespace-normal px-3 py-2.5">{spot.name}</td>
+                <td className="whitespace-nowrap px-3 py-2.5">
+                  {KIND_LABELS[spot.kind]}
+                </td>
+                <td className="min-w-40 whitespace-normal px-3 py-2.5">{spot.type}</td>
+                <td className="whitespace-nowrap px-3 py-2.5">
+                  {spot.arrondissement || "-"}
+                </td>
+                <td className="whitespace-nowrap px-3 py-2.5">{yesNo(spot.isOpen)}</td>
+                <td className="whitespace-nowrap px-3 py-2.5">{price(spot.isPaid)}</td>
+                <td className="whitespace-nowrap px-3 py-2.5">
+                  {spot.shadePercent == null
+                    ? "-"
                     : `${Math.round(spot.shadePercent)} %`}
                 </td>
               </tr>

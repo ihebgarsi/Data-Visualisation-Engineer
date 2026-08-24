@@ -1,7 +1,7 @@
 import type { CoolSpot } from "../models/coolSpot";
-import { mapsUrlFrom, text, type GeoPoint } from "./shared";
+import { clean, mapsLink, type GeoPoint } from "./shared";
 
-export const FOUNTAIN_SELECT = [
+export const FOUNTAIN_FIELDS = [
   "gid",
   "type_objet",
   "modele",
@@ -16,7 +16,7 @@ export const FOUNTAIN_SELECT = [
   "geo_point_2d",
 ].join(",");
 
-export type FountainRecord = {
+export type FountainRow = {
   gid?: string | null;
   type_objet?: string | null;
   modele?: string | null;
@@ -31,73 +31,55 @@ export type FountainRecord = {
   geo_point_2d?: GeoPoint;
 };
 
-const FOUNTAIN_TYPE_LABELS: Record<string, string> = {
-  BORNE_FONTAINE: "Borne fontaine",
-  FONTAINE_ARCEAU: "Fontaine arceau",
-  FONTAINE_2BOUCHE: "Fontaine 2 bouches",
-  FONTAINE_ALBIEN: "Fontaine Albien",
-  FONTAINE_WALLACE: "Fontaine Wallace",
-  FONTAINE_MILLENAIRE: "Fontaine du Millénaire",
-  FONTAINE_PETILLANTE: "Fontaine pétillante",
-  TOTTEM: "Totem",
-  TOTEM: "Totem",
-};
-
-function fountainTypeLabel(value: string | null | undefined): string {
-  const raw = text(value);
-  if (!raw) return "Fontaine";
-  return FOUNTAIN_TYPE_LABELS[raw] ?? raw.replaceAll("_", " ").toLowerCase();
+function prettyType(raw: string | null | undefined) {
+  const v = clean(raw);
+  if (!v) return "Fontaine";
+  if (v === "BORNE_FONTAINE") return "Borne fontaine";
+  if (v === "FONTAINE_WALLACE") return "Fontaine Wallace";
+  if (v.includes("PETILLANTE")) return "Fontaine pétillante";
+  return v.replaceAll("_", " ").toLowerCase();
 }
 
-export function communeToPostal(commune: string | null | undefined): string {
-  const value = text(commune);
-  if (!value) return "";
-  const match = value.match(/PARIS\s+(\d+)\s*(?:E|ER|EME)?/i);
-  if (!match) return value;
-  const number = Number.parseInt(match[1], 10);
-  return `75${String(number).padStart(3, "0")}`;
+// "PARIS 11EME ARRONDISSEMENT" -> "75011"
+export function communeToPostal(commune: string | null | undefined) {
+  const value = clean(commune);
+  const m = value.match(/PARIS\s+(\d+)/i);
+  if (!m) return value;
+  return "75" + m[1].padStart(3, "0");
 }
 
-function fountainAddress(record: FountainRecord): string {
-  const number = text(record.no_voirie_impair) || text(record.no_voirie_pair);
-  const street = text(record.voie);
-  return [number, street].filter(Boolean).join(" ");
+function fmtDate(iso: string | null | undefined) {
+  if (!iso) return "-";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("fr-FR");
 }
 
-function formatDate(value: string | null | undefined): string {
-  if (!value) return "—";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("fr-FR", {
-    dateStyle: "short",
-    timeZone: "Europe/Paris",
-  }).format(date);
-}
-
-export function mapFountain(record: FountainRecord, index: number): CoolSpot {
-  const available = text(record.dispo).toUpperCase() === "OUI";
-  const unavailable = text(record.dispo).toUpperCase() === "NON";
+export function mapFountain(row: FountainRow, i: number): CoolSpot {
+  const dispo = clean(row.dispo).toUpperCase();
+  const number = clean(row.no_voirie_impair) || clean(row.no_voirie_pair);
+  const street = clean(row.voie);
 
   return {
-    id: `fountain:${record.gid ?? index}`,
+    id: `fountain:${row.gid ?? i}`,
     kind: "fountain",
-    name: fountainTypeLabel(record.type_objet),
-    type: text(record.modele) || fountainTypeLabel(record.type_objet),
-    address: fountainAddress(record),
-    arrondissement: communeToPostal(record.commune),
-    isOpen: available ? true : unavailable ? false : null,
+    name: prettyType(row.type_objet),
+    type: clean(row.modele) || prettyType(row.type_objet),
+    address: [number, street].filter(Boolean).join(" "),
+    arrondissement: communeToPostal(row.commune),
+    isOpen: dispo === "OUI" ? true : dispo === "NON" ? false : null,
     isPaid: false,
     shadePercent: null,
     hoursToday: null,
     hoursByDay: null,
     hoursPeriod: null,
     extras: [
-      { label: "Modèle", value: text(record.modele) || "—" },
-      { label: "Disponibilité", value: text(record.dispo) || "—" },
-      { label: "Motif d'indisponibilité", value: text(record.motif_ind) || "—" },
-      { label: "Début indisponibilité", value: formatDate(record.debut_ind) },
-      { label: "Fin indisponibilité", value: formatDate(record.fin_ind) },
+      { label: "Modèle", value: clean(row.modele) || "-" },
+      { label: "Disponibilité", value: clean(row.dispo) || "-" },
+      { label: "Motif d'indisponibilité", value: clean(row.motif_ind) || "-" },
+      { label: "Début indisponibilité", value: fmtDate(row.debut_ind) },
+      { label: "Fin indisponibilité", value: fmtDate(row.fin_ind) },
     ],
-    mapsUrl: mapsUrlFrom(record.geo_point_2d),
+    mapsUrl: mapsLink(row.geo_point_2d),
   };
 }

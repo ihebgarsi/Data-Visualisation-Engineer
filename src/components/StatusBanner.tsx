@@ -1,56 +1,47 @@
 import type { LoadProgress, LoadStatus } from "../hooks/useCoolSpots";
 
-type StatusBannerProps = {
+type Props = {
   status: LoadStatus;
   error: string | null;
   progress: LoadProgress;
   onRetry: () => void;
 };
 
-const DATASET_LABELS = {
-  parks: "Espaces verts",
-  facilities: "Équipements",
-  fountains: "Fontaines",
-} as const;
-
-function percent(loaded: number, total: number): number {
-  if (total <= 0) return 0;
-  return Math.min(100, Math.round((loaded / total) * 100));
+function line(label: string, loaded: number, total: number) {
+  if (!total) return `${label} : en attente…`;
+  const pct = Math.round((loaded / total) * 100);
+  return `${label} : ${loaded} / ${total} (${pct}%)`;
 }
 
-export function StatusBanner({
-  status,
-  error,
-  progress,
-  onRetry,
-}: StatusBannerProps) {
+export function StatusBanner({ status, error, progress, onRetry }: Props) {
   if (status === "ready") return null;
 
   if (status === "loading") {
     return (
-      <div className="banner banner-info" role="status" aria-live="polite">
-        <span className="spinner" aria-hidden="true" />
-        <div className="banner-copy">
+      <div
+        className="mb-4 flex items-start gap-3 rounded-lg bg-info px-4 py-3"
+        role="status"
+      >
+        <span
+          className="mt-0.5 h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-line border-t-accent"
+          aria-hidden="true"
+        />
+        <div className="min-w-0 flex-1">
           <p>
             <strong>Chargement des données Open Data Paris…</strong>
           </p>
-          <ul className="load-progress">
-            {(Object.keys(DATASET_LABELS) as Array<keyof typeof DATASET_LABELS>).map(
-              (key) => {
-                const { loaded, total } = progress[key];
-                const label = DATASET_LABELS[key];
-                return (
-                  <li key={key}>
-                    <span>{label}</span>
-                    <span>
-                      {total > 0
-                        ? `${loaded} / ${total} (${percent(loaded, total)} %)`
-                        : "en attente…"}
-                    </span>
-                  </li>
-                );
-              },
-            )}
+          <ul className="mt-2 grid gap-0.5 text-sm">
+            <li>{line("Espaces verts", progress.parks.loaded, progress.parks.total)}</li>
+            <li>
+              {line(
+                "Équipements",
+                progress.facilities.loaded,
+                progress.facilities.total,
+              )}
+            </li>
+            <li>
+              {line("Fontaines", progress.fountains.loaded, progress.fountains.total)}
+            </li>
           </ul>
         </div>
       </div>
@@ -58,9 +49,16 @@ export function StatusBanner({
   }
 
   return (
-    <div className="banner banner-error" role="alert">
-      <span>{error ?? "Une erreur est survenue."}</span>
-      <button type="button" className="button" onClick={onRetry}>
+    <div
+      className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-danger-bg px-4 py-3 text-danger"
+      role="alert"
+    >
+      <span>{error || "Une erreur est survenue."}</span>
+      <button
+        type="button"
+        className="rounded-full border border-accent bg-accent px-3 py-1.5 text-sm text-white"
+        onClick={onRetry}
+      >
         Réessayer
       </button>
     </div>

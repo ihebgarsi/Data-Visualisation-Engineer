@@ -1,53 +1,30 @@
-# Îlots de fraîcheur — Paris
+# Îlots de fraîcheur (test technique)
 
-Application front-end pour trouver un lieu frais à Paris : espace vert ombragé, équipement intérieur, ou fontaine à boire.
+Front pour trouver un endroit frais à Paris : parc, équipement (piscine, biblio…) ou fontaine à boire.
 
-## Cas d’usage
+J’ai pris les 3 datasets Open Data de la Ville, je les ramène au même format, et je filtre / affiche tout ça dans un tableau. Pas de carte, je préférais un truc stable dans le temps imparti.
 
-N’importe qui, un jour de chaleur : filtrer par **besoin** (parc / intérieur / eau), **arrondissement**, **gratuit**, et **ouvert / disponible**. Pas de mode touriste vs habitant — les filtres couvrent les deux.
+## Lancer
 
-## Lancer le projet
-
-Les dépendances ne sont pas encore installées dans ce dossier.
-
-```bash
+```
 npm install
 npm run dev
 ```
 
-Puis ouvrir l’URL affichée par Vite (en général `http://localhost:5173`).
+Aucune clé API. Les appels partent vers `opendata.paris.fr`.
 
-```bash
-npm run build    # vérification TypeScript + bundle
-```
+## Comment c’est organisé
 
-Aucune clé API n’est nécessaire. Les données viennent d’Open Data Paris (ODbL).
+- `src/api` : pagination de l’API (max 100 records par requête)
+- `src/mappers` : un fichier par dataset, parce que les champs ne se ressemblent pas
+  - fontaines : `commune` → code postal, adresse en plusieurs champs, `dispo` au lieu des horaires
+  - équipements : champ `payant`
+  - parcs : % de végétation haute + horaires
+- `src/hooks/useCoolSpots.ts` : charge les 3 sources en parallèle
+- ensuite c’est du React classique (filtres, tableau, panneau détail)
 
-## Données
-
-Trois jeux officiels « îlots de fraîcheur », API OpenDataSoft v2.1 :
-
-| Source | Identifiant |
-| --- | --- |
-| Espaces verts | `ilots-de-fraicheur-espaces-verts-frais` |
-| Équipements / activités | `ilots-de-fraicheur-equipements-activites` |
-| Fontaines à boire | `fontaines-a-boire` |
-
-Les enregistrements sont paginés (100 par appel). Les géométries `geo_shape` ne sont pas demandées, pour garder le chargement léger.
-
-## Modèle de données
-
-Les trois APIs n’ont pas les mêmes champs. Chaque source passe par un mapper vers un `CoolSpot` commun (`id`, `kind`, `name`, `type`, `address`, `arrondissement`, `isOpen`, `isPaid`, `shadePercent`, horaires).
-
-Normalisations importantes :
-
-- arrondissement des fontaines : `PARIS 14EME ARRONDISSEMENT` → `75014`
-- adresse des fontaines reconstruite depuis numéro + voie
-- parcs et fontaines traités comme gratuits
-- filtres appliqués **côté client** une fois les trois jeux fusionnés, pour qu’un filtre (arrondissement, gratuit, ouvert) s’applique à 1 ou N datasets sans réécrire trois requêtes `where`
-
-Pas de carte : un tableau triable, des filtres, et un panneau de détail (lien Google Maps optionnel).
+Filtres côté client une fois les données fusionnées, plus simple que 3 `where` différents.
 
 ## Stack
 
-Vite + TypeScript (React 18). `fetch` natif, CSS sans kit UI.
+React 18, Vite, TypeScript, Tailwind CSS.

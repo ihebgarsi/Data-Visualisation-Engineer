@@ -1,15 +1,15 @@
 import type { CoolSpot, Weekday } from "../models/coolSpot";
 import {
-  hoursFromRecord,
-  hoursTodayFrom,
-  mapsUrlFrom,
-  mapOpenStatus,
-  mapYesNo,
-  text,
+  clean,
+  hoursToday,
+  mapsLink,
+  ouiNon,
+  parseOuvert,
+  pickHours,
   type GeoPoint,
 } from "./shared";
 
-export const FACILITY_SELECT = [
+export const FACILITY_FIELDS = [
   "identifiant",
   "nom",
   "type",
@@ -29,7 +29,7 @@ export const FACILITY_SELECT = [
   "geo_point_2d",
 ].join(",");
 
-export type FacilityRecord = {
+export type FacilityRow = {
   identifiant?: string | null;
   nom?: string | null;
   type?: string | null;
@@ -49,30 +49,25 @@ export type FacilityRecord = {
   geo_point_2d?: GeoPoint;
 };
 
-export function mapFacility(record: FacilityRecord, index: number): CoolSpot {
-  const hoursByDay = hoursFromRecord(
-    record as Partial<Record<`horaires_${Weekday}`, string | null>>,
-  );
+export function mapFacility(row: FacilityRow, i: number): CoolSpot {
+  const hours = pickHours(row as Partial<Record<`horaires_${Weekday}`, string | null>>);
 
   return {
-    id: `facility:${record.identifiant ?? index}`,
+    id: `facility:${row.identifiant ?? i}`,
     kind: "facility",
-    name: text(record.nom) || "Équipement",
-    type: text(record.type) || "Équipement",
-    address: text(record.adresse),
-    arrondissement: text(record.arrondissement),
-    isOpen: mapOpenStatus(record.statut_ouverture),
-    isPaid: mapYesNo(record.payant),
+    name: clean(row.nom) || "Équipement",
+    type: clean(row.type) || "Équipement",
+    address: clean(row.adresse),
+    arrondissement: clean(row.arrondissement),
+    isOpen: parseOuvert(row.statut_ouverture),
+    isPaid: ouiNon(row.payant),
     shadePercent: null,
-    hoursToday: hoursTodayFrom(hoursByDay),
-    hoursByDay,
-    hoursPeriod: record.horaires_periode ?? null,
+    hoursToday: hoursToday(hours),
+    hoursByDay: hours,
+    hoursPeriod: row.horaires_periode ?? null,
     extras: [
-      {
-        label: "Bon plan usager",
-        value: record.proposition_usager?.trim() || "—",
-      },
+      { label: "Bon plan usager", value: row.proposition_usager?.trim() || "-" },
     ],
-    mapsUrl: mapsUrlFrom(record.geo_point_2d),
+    mapsUrl: mapsLink(row.geo_point_2d),
   };
 }

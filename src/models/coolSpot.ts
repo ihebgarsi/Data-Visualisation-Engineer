@@ -31,6 +31,7 @@ export type SpotFilters = {
   arrondissement: string;
   freeOnly: boolean;
   openOnly: boolean;
+  shadeOnly: boolean;
   search: string;
 };
 

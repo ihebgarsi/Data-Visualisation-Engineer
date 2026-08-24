@@ -21,6 +21,10 @@ export function applyFilters(spots: CoolSpot[], filters: SpotFilters): CoolSpot[
     }
     if (filters.freeOnly && spot.isPaid === true) return false;
     if (filters.openOnly && spot.isOpen !== true) return false;
+    // APUR: plus de 50% de végétation haute = vraiment ombragé
+    if (filters.shadeOnly && (spot.shadePercent == null || spot.shadePercent < 50)) {
+      return false;
+    }
     if (search) {
       const haystack = `${spot.name} ${spot.type} ${spot.address}`.toLowerCase();
       if (!haystack.includes(search)) return false;
